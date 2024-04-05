@@ -1,0 +1,2 @@
+(c|C)hat(gpt|GPT)
+(o|O)pen(ai|AI)

@@ -1,0 +1,10 @@
+#### works for submissions
+python3 combine_folder_multiprocess.py /Users/lb/projects/data/reddit/submissions --field selftext --value chatgpt,openai --partial --output /Users/lb/projects/cl_chatty/output/data/filtered/submissions
+
+
+#### doesn't work for submissions
+python3 combine_folder_multiprocess.py /Users/lb/projects/data/reddit/submissions --field selftext --value_list /Users/lb/projects/ChatGPT_mentalstates/input/data_filtering/value_list.txt --regex --output /Users/lb/projects/ChatGPT_mentalstates/output/data/filtered/submissions
+
+
+#### test
+python3 combine_folder_multiprocess.py /Users/lb/projects/data/reddit/submissions --field subreddit --value mtg --output /Users/lb/projects/ChatGPT_mentalstates/output/data/filtered/submissions

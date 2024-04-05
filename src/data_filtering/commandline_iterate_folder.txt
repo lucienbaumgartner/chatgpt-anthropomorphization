@@ -1,0 +1,1 @@
+python3 iterate_folder.py /Users/lb/projects/data/reddit/submissions
