@@ -5,15 +5,15 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="da0f767d-7167-4448-954e-1b3f009d74a6" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/.idea/cl_chatty.iml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/profiles_settings.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/modules.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/preprocessing/NEW_DEP.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/preprocessing/NEW_DEP_v2+obj.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/preprocessing/dependency_tree_parsing.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/generating_embeddings/generate_sov_embeddings.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/generating_embeddings/generate_verb_embeddings.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/preprocessing/data_processing.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/preprocessing/dependency_extraction_tools.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/tools/GenerateEmbeddings.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/tools/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/output/data/sov/submissions/sov_submissions.pkl" beforeDir="false" afterPath="$PROJECT_DIR$/output/data/sov/submissions/sov_submissions.pkl" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/preprocessing/NEW_DEP_v2+obj.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/preprocessing/NEW_DEP_v2+obj.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -30,9 +30,15 @@
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
-  <component name="ProjectColorInfo"><![CDATA[{
-  "associatedIndex": 0
-}]]></component>
+  <component name="HighlightingSettingsPerFile">
+    <setting file="file://$PROJECT_DIR$/src/generating_embeddings/generate_verb_embeddings.py" root0="FORCE_HIGHLIGHTING" />
+  </component>
+  <component name="ProblemsViewState">
+    <option name="selectedTabId" value="CurrentFile" />
+  </component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 0
+}</component>
   <component name="ProjectId" id="2ebC9YbelLrxFdgja8XjHPsdsWj" />
   <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
   <component name="ProjectViewState">
@@ -43,26 +49,39 @@
   "keyToString": {
     "Python.NEW_DEP.executor": "Run",
     "Python.NEW_DEP_v2+obj.executor": "Run",
+    "Python.dependency_extraction_tools.executor": "Run",
     "Python.dependency_parsing.executor": "Run",
     "Python.dependency_parsing_test.executor": "Run",
     "Python.dependency_tree_parsing.executor": "Run",
+    "Python.generate_sov_embeddings.executor": "Run",
+    "Python.generate_verb_embeddings.executor": "Run",
+    "Python.scratch_10.executor": "Run",
+    "Python.scratch_11.executor": "Run",
     "Python.scratch_3.executor": "Run",
     "Python.scratch_4.executor": "Run",
     "Python.scratch_5.executor": "Run",
+    "Python.scratch_6.executor": "Run",
+    "Python.scratch_7.executor": "Run",
+    "Python.scratch_8.executor": "Run",
+    "Python.scratch_9.executor": "Run",
     "RunOnceActivity.OpenProjectViewOnStart": "true",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "git-widget-placeholder": "main",
     "last_opened_file_path": "/Users/lb/projects/cl_chatty/src/preprocessing",
-    "settings.editor.selected.configurable": "com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable"
+    "settings.editor.selected.configurable": "preferences.lookFeel"
   },
   "keyToStringList": {
     "com.intellij.ide.scratch.ScratchImplUtil$2/New Scratch File": [
-      "Python"
+      "Python",
+      "GitIgnore"
     ]
   }
 }]]></component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/src/preprocessing" />
+    </key>
+    <key name="MoveFile.RECENT_KEYS">
       <recent name="$PROJECT_DIR$/src/preprocessing" />
     </key>
   </component>
@@ -82,6 +101,18 @@
       <option name="presentableId" value="Default" />
       <updated>1712163739703</updated>
     </task>
+    <option name="searchClosedTasks" value="true" />
     <servers />
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$APPLICATION_CONFIG_DIR$/scratches/scratch_4.py</url>
+          <line>6</line>
+          <option name="timeStamp" value="2" />
+        </line-breakpoint>
+      </breakpoints>
+    </breakpoint-manager>
   </component>
 </project>
