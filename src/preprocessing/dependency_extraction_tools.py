@@ -43,26 +43,27 @@ def object_locator(verb_children, subject):
     return(tokens_dict)
 
 
-def extract_object(verb, subject):
+def extract_object(verb, subject, sentence):
     tokens_dict = object_locator(verb_children=verb.rights, subject=subject)
 
     if len(tokens_dict) == 0:
         tokens_dict = object_locator(verb_children=verb.lefts, subject=subject)
 
-    # Extracting the properties from tokens
+    # Extracting properties from tokens
     object_texts = [token.text for token in tokens_dict.values()]
     object_deps = [token.dep_ for token in tokens_dict.values()]
     object_tags = [token.tag_ for token in tokens_dict.values()]
+    object_indices = [token.i-sentence.start for token in tokens_dict.values()]  # Extracting token indices
 
     # Joining the lists into strings for the final output
     object_phrase = ' '.join(object_texts).strip()
     object_deps = ' '.join(object_deps)
     object_tags = ' '.join(object_tags)
 
-    return object_phrase, object_deps, object_tags
+    return object_phrase, object_deps, object_tags, object_indices
 
 
-def extract_verb_phrase(verb, subject):
+def extract_verb_phrase(verb, subject, sentence):
     # Extract the full verb phrase
     verb_elements = [verb.text]
     verb_elements_indices = [verb.i]
@@ -100,8 +101,9 @@ def extract_verb_phrase(verb, subject):
     _, verb_elements_sorted = zip(*paired_sorted)  # Step 3: Unzip to get the sorted elements
     verb_elements_sorted = list(verb_elements_sorted)  # Step 4: Convert the result back to a list
     verb_phrase = " ".join(verb_elements_sorted)  # Step 5: Join the elements to form the verb phrase
+    verb_elements_indices = [element-sentence.start for element in verb_elements_indices]
 
-    return verb_phrase
+    return verb_phrase, verb_elements_indices
 
 def extract_verb_chain(verb, subject):
     extended_verbs = [verb] + \

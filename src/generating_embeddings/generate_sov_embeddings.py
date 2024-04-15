@@ -1,109 +1,141 @@
-import re
-import numpy as np
-import pickle
 import torch
+from transformers import DistilBertModel, DistilBertTokenizer
+import spacy
+from spacy.tokens import Doc
+import pickle
+import re
 from tqdm import tqdm
-from transformers import BertTokenizer, BertModel
+import h5py
+import numpy as np
 
-tokenizer = BertTokenizer.from_pretrained('bert-base-multilingual-cased')
+def map_spacy_distilbert_tokens(spacy_doc, distilbert_tokens, print_=False):
+    spacy_to_distilbert_map = []
+    distilbert_token_index = 0
 
-# Load pre-trained model (weights)
-model = BertModel.from_pretrained('bert-base-multilingual-cased', output_hidden_states = True)
+    # Concatenate all RoBERTa tokens to match against text
+    distilbert_text = ''.join([t.replace('##', ' ') if t.startswith('##') else t for t in distilbert_tokens])
+    spacy_text_index = 0
+
+    for token in spacy_doc:
+
+        # Normalize spaCy token text for comparison
+        spacy_token_text = token.text.replace("’", "'")
+
+        # Find the start of the current spaCy token in the concatenated RoBERTa text
+        while distilbert_text[spacy_text_index:spacy_text_index + len(spacy_token_text)] != spacy_token_text:
+            spacy_text_index += 1
+            if spacy_text_index >= len(distilbert_text):  # Safety condition
+                break
+
+        # Find all RoBERTa tokens that overlap with this spaCy token
+        start_index = spacy_text_index
+        end_index = spacy_text_index + len(token.text)
+        current_distilbert_indices = []
+
+        while distilbert_token_index < len(distilbert_tokens) and start_index < end_index:
+            current_token = distilbert_tokens[distilbert_token_index]
+            current_token_length = len(current_token.replace('##', ' '))
+            token_start = start_index
+            token_end = start_index + current_token_length
+
+            # Check if the current RoBERTa token overlaps with the spaCy token
+            if token_start < end_index and token_end > start_index:
+                current_distilbert_indices.append(distilbert_token_index)
+            start_index += current_token_length
+            distilbert_token_index += 1
+
+        # Map the spaCy token to the list of overlapping RoBERTa token indices
+        spacy_to_distilbert_map.append(current_distilbert_indices)
+        spacy_text_index += len(token.text)
+
+    if print_:
+        print_token_mapping(spacy_doc, distilbert_tokens, spacy_to_distilbert_map)
+
+    return spacy_to_distilbert_map
 
 
-def get_bert_embeddings(tokens_tensor, segments_tensor, model):
-    """
-    Obtains BERT embeddings for tokens.
-    """
-    # gradient calculation id disabled
-    with torch.no_grad():
-      # obtain hidden states
-      outputs = model(tokens_tensor, segments_tensor)
-      hidden_states = outputs[2]
-    # concatenate the tensors for all layers
-    # use "stack" to create new dimension in tensor
-    token_embeddings = torch.stack(hidden_states, dim=0)
-    # remove dimension 1, the "batches"
-    token_embeddings = torch.squeeze(token_embeddings, dim=1)
-    # swap dimensions 0 and 1 so we can loop over tokens
-    token_embeddings = token_embeddings.permute(1,0,2)
-    # initialized list to store embeddings
-    token_vecs_sum = []
-    # "token_embeddings" is a [Y x 12 x 768] tensor
-    # where Y is the number of tokens in the sentence
-    # loop over tokens in sentence
-    for token in token_embeddings:
-    # "token" is a [12 x 768] tensor
-    # sum the vectors from the last four layers
-        sum_vec = torch.sum(token[-4:], dim=0)
-        """
-        As an alternative to the sum of the last four layers, one can also concenate the last four layers or extract the second to last layer
-        """
-        #sum_vec = torch.cat((token[-1], token[-2], token[-3], token[-4]), dim=0)
-        #sum_vec = token[-2]
-        token_vecs_sum.append(sum_vec)
-    return token_vecs_sum
+def print_token_mapping(spacy_doc, distilbert_tokens, mapping):
+    print("spaCy Token to RoBERTa Token Mapping:\n")
+    for token, indices in zip(spacy_doc, mapping):
+        distilbert_token_group = [distilbert_tokens[idx] for idx in indices]
+        print(f"spaCy Token: '{token.text}' -> DistilBERT Tokens: {distilbert_token_group}")
 
-def bert_text_preparation(text, tokenizer):
-  """
-  Preprocesses text input in a way that BERT can interpret.
-  """
-  marked_text = "[CLS] " + text + " [SEP]"
-  tokenized_text = tokenizer.tokenize(marked_text)
-  indexed_tokens = tokenizer.convert_tokens_to_ids(tokenized_text)
-  segments_ids = [1]*len(indexed_tokens)
-  # convert inputs to tensors
-  tokens_tensor = torch.tensor([indexed_tokens])
-  segments_tensor = torch.tensor([segments_ids])
-  return tokenized_text, tokens_tensor, segments_tensor
 
-def wrap_embeddings(texts):
-    progress_bar = tqdm(total=len(texts), desc="Generating Embeddings", smoothing=1)
-    tokens = []
-    embeddings = []
-    for text in texts:
-        tokenized_text, tokens_tensor, segments_tensors = bert_text_preparation(text, tokenizer)
-        try:
-            list_token_embeddings = get_bert_embeddings(tokens_tensor, segments_tensors, model)
-        except RuntimeError as e:
-            continue
+def extract_embeddings_by_indices(texts_list, indices_list, print_=False):
+    try:
+        assert len(texts_list) == len(indices_list)
+    except:
+        print("Texts and indices do not have the same length.")
 
-        token_embeddings = sum(list_token_embeddings)
-        token_text = ''.join(tokenized_text)
-        token_text = re.sub(r'\[[A-Z]+\]|#', '', token_text)
-        embeddings.append(token_embeddings)
-        tokens.append(token_text)
-        progress_bar.update(1)
+    hdf5_file = '/Users/lb/projects/cl_chatty/output/embeddings/sov/submissions/sov_embeddings.h5'
+    with h5py.File(hdf5_file, 'w') as f:
+        # Initialize an empty dataset with unlimited size and the shape of embeddings
+        # Adjust the shape according to your embedding dimension
+        max_shape = (None, model.config.hidden_size)
+        dset = f.create_dataset('embeddings', shape=(0, model.config.hidden_size), maxshape=max_shape, dtype='float32', compression='gzip', compression_opts=9)
 
-    progress_bar.close()
-    return tokens, embeddings
+        for text, indices in tqdm(zip(texts_list, indices_list), total=len(texts_list)):
 
-def clean_verbs(strings):
-    english_strings = []
-    for string in strings:
-        try:
-            string.encode('ascii')
-        except UnicodeEncodeError:
-            continue
-        else:
-            if all(c.isalnum() for c in string):
-                english_strings.append(string)
-    return english_strings
+            # Process text with both spaCy and RoBERTa
+            if (isinstance(text, Doc)):
+                spacy_doc = text
+                text = ' '.join([token.text_with_ws for token in spacy_doc])
+                text = re.sub(r'\s+', ' ', text)
+            else:
+                spacy_doc = nlp(text)
+
+            encoded_input = tokenizer(text, return_tensors='pt')
+            outputs = model(**encoded_input)
+
+            # Get the last hidden states (embeddings)
+            embeddings = outputs.last_hidden_state.squeeze(0)
+
+            # Map spaCy tokens to RoBERTa tokens
+            try:
+                mapping = map_spacy_distilbert_tokens(spacy_doc, tokenizer.tokenize(text), print_=print_)
+            except:
+                continue
+
+            # Aggregate embeddings for the provided indices
+            aggs = aggregate_embeddings(embeddings, mapping, indices)
+
+            # Extend the dataset and append new data
+            new_len = dset.shape[0] + 1
+            dset.resize(new_len, axis=0)
+            dset[-1] = aggs
+
+def aggregate_embeddings(embeddings, mapping, indices):
+    # Initialize an empty list to store all the embeddings for the sentence
+    sentence_embeddings = []
+
+    # Collect all relevant token embeddings according to the indices
+    for idx in indices:
+        distilbert_indices = mapping[idx]
+        token_embeddings = embeddings[distilbert_indices]  # This extracts all sub-token embeddings
+        sentence_embeddings.extend(token_embeddings)  # Extend the list with these embeddings
+
+    # Convert the list of all token embeddings to a tensor
+    sentence_embeddings = torch.stack(sentence_embeddings)
+
+    # Compute the mean across all token embeddings to get a single sentence embedding
+    aggregated_sentence_embedding = torch.mean(sentence_embeddings, dim=0).detach().numpy()
+
+    return aggregated_sentence_embedding
+
 
 filepath = "/Users/lb/projects/cl_chatty/output/data/sov/submissions/sov_submissions.pkl"
 with (open(filepath, "rb")) as openfile:
     sov = pickle.load(openfile)
 
-verbs = [d['verb_lemma'] for d in sov]
-#verbs = verbs[0:100]
-verbs = np.array(verbs)
-verbs = np.unique(verbs)
-verbs = clean_verbs(verbs)
+nlp = spacy.load("en_core_web_sm", disable=["ner"])
 
-tokens, embeddings = wrap_embeddings(verbs)
-assert len(tokens) == len(embeddings)
-verb_dict = {tokens[i]: embeddings[i] for i in range(len(tokens))}
+# Load RoBERTa model
+model = DistilBertModel.from_pretrained('distilbert-base-uncased')
+tokenizer = DistilBertTokenizer.from_pretrained('distilbert-base-uncased')
 
-out_path = '../../output/embeddings/verbs_only/verb_embeddings.pkl'
-filehandler = open(out_path, 'wb')
-pickle.dump(sov, filehandler)
+texts_list, verb_phrase, indices_list, created_utc = zip(
+    *[(element["sentence"], element["verb_phrase"], element["verb_phrase_indices"], element["created_utc"]) for element
+      in sov])
+
+extract_embeddings_by_indices(texts_list=texts_list, indices_list=indices_list, print_=False)
+

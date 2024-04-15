@@ -1,4 +1,5 @@
 import spacy
+from spacy.tokens import Doc
 import re
 from tqdm import tqdm
 import pickle
@@ -16,6 +17,7 @@ def extract_sov(sentence, target_terms):
             subject = token
             subject_det = any(token.pos_ == "DET" for token in subject.children)
             subject_phrase = ' '.join([token.text for token in subject.subtree]).strip()
+            subject_indices = [token.i-sentence.start for token in subject.subtree]
             verb = token.head
 
             for child in verb.children:
@@ -46,10 +48,10 @@ def extract_sov(sentence, target_terms):
                 verb_negated = any(token.dep_ == "neg" for token in verb.children)
 
                 # Extract verb phrase
-                verb_phrase = extract_verb_phrase(verb, subject)
+                verb_phrase, verb_phrase_indices = extract_verb_phrase(verb, subject, sentence)
 
                 # Now, find the object related to the verb
-                object_phrase, object_deps, object_tags = extract_object(verb, subject)
+                object_phrase, object_deps, object_tags, object_indices = extract_object(verb, subject, sentence)
 
                 # Check if the verb is in active form and not part of a question
                 if verb.dep_ in ["ROOT", "xcomp", "ccomp", "relcl", "conj", "aux", "advcl"] and verb.pos_ in ["VERB", "AUX"]:
@@ -65,16 +67,20 @@ def extract_sov(sentence, target_terms):
                             "subject_det": subject_det,
                             "subject_pos": subject.pos_,
                             "subject_phrase": subject_phrase,
+                            "subject_phrase_indices": subject_indices,
                             "verb": verb.text,
                             "verb_lemma": verb.lemma_,
                             "verb_dep": verb.dep_,
                             "verb_tag": verb.tag_,
                             "verb_negated": verb_negated,
                             "verb_phrase": verb_phrase,
+                            "verb_phrase_indices": verb_phrase_indices,
                             "object_phrase": object_phrase,
+                            "object_phrase_indices": object_indices,
                             "object_dep": object_deps,
                             "object_tag": object_tags,
-                            "sentence": sentence_tokenized
+                            "sentence": sentence_tokenized,
+                            "doc": sentence.as_doc()
                         })
 
     if svo_combinations != []:
@@ -98,9 +104,9 @@ def generate_sov(texts, target_terms,subsample=None):
                 else:
                     result = extract_sov(sentence, target_terms)
                     if result != None:
-                        sentence_tokenized = ' '.join([token.text_with_ws for token in sentence])
-                        sentence_tokenized = re.sub(r'\s+', ' ', sentence_tokenized)
-                        result = [dict(item, **{"created_utc": text["created_utc"], "sentence": sentence_tokenized}) for item in result]
+                        #sentence_tokenized = ' '.join([token.text_with_ws for token in sentence])
+                        #sentence_tokenized = re.sub(r'\s+', ' ', sentence_tokenized)
+                        result = [dict(item, **{"created_utc": text["created_utc"]}) for item in result]
                         filtered_texts.append(result)
     filtered_texts = [x for xs in filtered_texts for x in xs]
     return filtered_texts
@@ -122,8 +128,8 @@ json_generator = read_zst_file(file_path)
 # Extract SOV structures
 sov = generate_sov(json_generator, target_terms)
 
-# Remove duplicates
-sov = list({frozenset(item.items()): item for item in sov}.values())
+# Remove duplicates, ignoring lists in the values
+sov = list({frozenset((k, v) for k, v in item.items() if not (isinstance(v, list) or isinstance(v, Doc))): item for item in sov}.values())
 
 # Write out data
 out_path = '../../output/data/sov/submissions/sov_submissions.pkl'
